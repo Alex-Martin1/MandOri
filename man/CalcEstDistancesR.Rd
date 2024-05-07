@@ -1,7 +1,7 @@
 \name{CalcEstDistancesR}
 \alias{CalcEstDistancesR}
 \title{
-Calculate linear distances in mm from a given set of three-dimentional points - Do not use this unless you have coleected your landmarks coordinates following the exact same method of Godinho et al., 2020 (DOI: 10.1002/ajpa.24095)
+Calculate linear distances in mm from a given set of three-dimentional points (*see details) 
 }
 \description{
 Calculate linear distances (in millimetres) that will subsequently be used for size standardization processes.The difference with CalEstDistances is that this function utilizes a specific set of points designed by Godinho et al., 2020 (DOI: 10.1002/ajpa.24095), which has a specific order and size (21 points entered as text input plus another one that is subsequently added from the R environment, as it has been calculated in previous steps).
@@ -15,6 +15,7 @@ x must be a text string containing all the coordinates of the points to be inclu
 }
 }
 \details{
+*Do not use this unless you have coleected your landmarks coordinates following the exact same method of Godinho et al., 2020 (DOI: 10.1002/ajpa.24095)
 The reason for including two functions that are so similar in the package is that when designing the protocol, a function should be included to allow following the described workflow in the stard protocol (CalcEstDistances). However, in our personal research case, the workflow was slightly different because we already had the coordinates of the points stored in a different way, so we had to desing a new function that addressed these circumstances (CalcEstDistancesR).
 }
 \value{
