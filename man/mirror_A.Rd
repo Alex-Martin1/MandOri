@@ -4,22 +4,22 @@
 Mirroing point A respect to the P plane.
 }
 \description{
-This function computes the X, Y and Z coordinates of a new point (A' or A_Prime) symmetric to the first introduced point (A) with respect to a plane defined by the following three points that were introduced as an input (B, C, D). Thus, the order in which the coordinates are entered is crucial for the subsequent result. Once the function is executed, it will automatically generate a new matrix (result_matrix_A_Prime) that includes the new point A_Prime as a new row.
+This function computes the X, Y and Z coordinates of a new point (A' or A_Line) symmetric to the first introduced point (A) with respect to a plane defined by the following three points that were introduced as an input (B, C, D). Thus, the order in which the coordinates are entered is crucial for the subsequent result. Once the function is executed, it will automatically update the existing "result_matrix" object by adding the new point A_Line as the last row.
 }
 \usage{
 mirror_A(x)
 }
 \arguments{
   \item{x}{
-x must be a 4x3 matrix where the points A, B, C, and D are arranged from top to bottom in that same order.
+must be a matrix where the points A, B, C, and D are arranged from top to bottom in that same order.
 }
 }
 \details{
 This function can only be executed with matrices containing three columns; i.e., with three-dimensional points where the coordinates for X, Y, and Z are each located in a separate column)
 }
 \value{
-Three-dimentional coordinates of the new calculated point (A_Prime)
-Besides, the function will generate a new matrix (result_matrix_A_Prime) that includes the new point A_Prime as a new row.
+Three-dimentional coordinates of the new calculated point (A_Line).
+Besides, the function will update the existing "result_matrix" object by adding the new point A_Line as the last row.
 }
 \references{
 Protocols.io - to be published
@@ -32,8 +32,8 @@ As a low-level user of R, while I grasp the logic of the language and handle its
 }
 \examples{
 require(MandiOri)
-text <- "2 2 8 5 8 4 6 9 7 6 3 2"
-result_matrix <- text2matrix(text)
+text <- "2 2 8 5 8 4 6 9 7 6 3 2 5 9 8 5 4 8 5 9 4 5 4 7 4 5 8"
+result_matrix <- getmatrix(text)
 mirror_A(result_matrix)
 View(result_matrix_A_Prime)
 }
