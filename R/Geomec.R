@@ -34,9 +34,9 @@ mirror_A <- function(result_matrix) {
   BC <- C - B
   BD <- D - B
   n <- cross_product(BC, BD)
-  d <- abs(sum((A - B) * n) / sqrt(sum(n^2)))
   n_norm <- n / sqrt(sum(n^2))
-  A_Line <- A + 2 * d * n_norm
+  d <- sum((A - B) * n_norm)
+  A_Line <- A - 2 * d * n_norm
   result_matrix <- rbind(result_matrix, A_Line)
   assign("A_Line", A_Line, envir = .GlobalEnv)
   assign("result_matrix", result_matrix, envir = .GlobalEnv)
