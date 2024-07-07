@@ -31,7 +31,7 @@ Alejandro Martín-Sánchez
 As a low-level user of R, while I grasp the logic of the language and handle its fundamental principles, I have turned to AI to generate the code for the entire package in order to save hours of work. A seasoned developer or even someone proficient in the field may have easily noticed this, as the code may not be as efficient as it could be. For this reason, any suggestions on how to improve it are more than welcome :)
 }
 \examples{
-require(MandiOri)
+require(MandOri)
 text <- "2 2 8 5 8 4 6 9 7 6 3 2 5 9 8 5 4 8 5 9 4 5 4 7 4 5 8"
 result_matrix <- getmatrix(text)
 mirror_A(result_matrix)

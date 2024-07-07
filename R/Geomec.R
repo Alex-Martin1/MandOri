@@ -150,3 +150,39 @@ text2matrix <- function(input_text) {
   result_matrix <- matrix(values, ncol = 3, byrow = TRUE)
   return(result_matrix)
 }
+
+#Extra - Fill NA cells of a column preserving pre-exinting mean 
+fill_na_mean_pres <- function(df, column) {
+  # Calculate the mean ignoring NA values
+  initial_mean <- mean(df[[column]], na.rm = TRUE)
+  # Count the number of NA values
+  num_NA <- sum(is.na(df[[column]]))
+  # Calculate the sum that the values must have to maintain the mean
+  required_sum <- initial_mean * length(df[[column]]) - sum(df[[column]], na.rm = TRUE)
+  max_value <- max(df[[column]], na.rm = TRUE)
+  min_value <- min(df[[column]], na.rm = TRUE)
+  # Generate random values within the allowed range
+  set.seed(123) # for reproducibility
+  na_values <- runif(num_NA, min = min_value, max = max_value)
+  na_values <- na_values / sum(na_values) * required_sum
+  # Adjust values to be within the allowed range (existing min and max)
+  while (any(na_values < min_value) || any(na_values > max_value)) {
+    na_values[na_values < min_value] <- runif(sum(na_values < min_value), min = min_value, max = max_value)
+    na_values[na_values > max_value] <- runif(sum(na_values > max_value), min = min_value, max = max_value)
+    na_values <- na_values / sum(na_values) * required_sum
+  }
+  # Fill the NA values with the generated values
+  df[[column]][is.na(df[[column]])] <- na_values
+  # Verify the new mean
+  final_mean <- mean(df[[column]])
+  # Display the means for verification
+  print(paste("Initial mean:", initial_mean))
+  print(paste("Final mean:", final_mean))
+  if (initial_mean == final_mean) {
+    print("Means are equal!")
+  }
+  #Create the new df with NA cells filled
+  assign("NA_filled_df", df, envir = .GlobalEnv)
+  # Return the dataset with filled values
+  return(df)
+}
