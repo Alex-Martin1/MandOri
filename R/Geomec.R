@@ -157,18 +157,21 @@ fill_na_mean_pres <- function(df, column) {
   initial_mean <- mean(df[[column]], na.rm = TRUE)
   # Count the number of NA values
   num_NA <- sum(is.na(df[[column]]))
+  #Calculate 95% CI
+  n <- sum(!is.na(df[[column]]))  # Tamaño de la muestra sin NAs
+  error_margin <- qt(0.975, df = n - 1) * sd_value / sqrt(n)
+  conf_interval_min <- initial_mean - error_margin
+  conf_interval_max <- initial_mean + error_margin
   # Calculate the sum that the values must have to maintain the mean
   required_sum <- initial_mean * length(df[[column]]) - sum(df[[column]], na.rm = TRUE)
-  max_value <- max(df[[column]], na.rm = TRUE)
-  min_value <- min(df[[column]], na.rm = TRUE)
   # Generate random values within the allowed range
-  set.seed(123) # for reproducibility
-  na_values <- runif(num_NA, min = min_value, max = max_value)
+  set.seed(123) # para reproducibilidad
+  na_values <- runif(num_NA, min = conf_interval_min, max = conf_interval_max)
   na_values <- na_values / sum(na_values) * required_sum
   # Adjust values to be within the allowed range (existing min and max)
-  while (any(na_values < min_value) || any(na_values > max_value)) {
-    na_values[na_values < min_value] <- runif(sum(na_values < min_value), min = min_value, max = max_value)
-    na_values[na_values > max_value] <- runif(sum(na_values > max_value), min = min_value, max = max_value)
+  while (any(na_values < conf_interval_min) || any(na_values > conf_interval_max)) {
+    na_values[na_values < conf_interval_min] <- runif(sum(na_values < conf_interval_min), min = conf_interval_min, max = conf_interval_max)
+    na_values[na_values > conf_interval_max] <- runif(sum(na_values > conf_interval_max), min = conf_interval_min, max = conf_interval_max)
     na_values <- na_values / sum(na_values) * required_sum
   }
   # Fill the NA values with the generated values
