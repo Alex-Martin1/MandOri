@@ -157,6 +157,8 @@ fill_na_mean_pres <- function(df, column) {
   initial_mean <- mean(df[[column]], na.rm = TRUE)
   # Count the number of NA values
   num_NA <- sum(is.na(df[[column]]))
+  # Calculate the SD ignoring NA cells
+  sd_value <- sd(df[[column]], na.rm = TRUE)
   #Calculate 95% CI
   n <- sum(!is.na(df[[column]]))  # Tamaño de la muestra sin NAs
   error_margin <- qt(0.975, df = n - 1) * sd_value / sqrt(n)
