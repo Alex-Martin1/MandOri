@@ -49,7 +49,7 @@ point_M_Vs <- function(result_matrix) {
   B <- result_matrix[2, ]
   C <- result_matrix[3, ]
   D <- result_matrix[4, ]
-  A_Line <- result_matrix[10, ]
+  A_Line <- result_matrix[8, ]
   AA_Line <- A_Line - A
   projection <- (sum((B - A) * AA_Line) / sum(AA_Line^2)) * AA_Line
   M <- A + projection
@@ -108,11 +108,10 @@ CalcEstDistances <- function(input_matrix) {
   distances <- c(
     "Corpus length" = sqrt(sum((input_matrix[3, ] - input_matrix[5, ])^2)),
     "Ramus lateral length" = sqrt(sum((input_matrix[6, ] - input_matrix[7, ])^2)),
-    "Ramus width" = sqrt(sum((input_matrix[8, ] - input_matrix[9, ])^2)),
-    "Mandibular superior length" = sqrt(sum((input_matrix[2, ] - input_matrix[11, ])^2))
+    "Mandibular superior length" = sqrt(sum((input_matrix[2, ] - input_matrix[9, ])^2))
   )
-  Estandardization_distances <- matrix(distances, nrow = 1, ncol = 4)
-  colnames(Estandardization_distances) <- c("Corpus length", "Ramus lateral length", "Ramus width", "Mandibular superior length") 
+  Estandardization_distances <- matrix(distances, nrow = 1, ncol = 3)
+  colnames(Estandardization_distances) <- c("Corpus length", "Ramus lateral length", "Mandibular superior length") 
   assign("Estandardization_distances", Estandardization_distances, envir = .GlobalEnv)
   return(Estandardization_distances)
 }
