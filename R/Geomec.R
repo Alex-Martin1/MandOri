@@ -125,7 +125,7 @@ distR <- function(input_text) {
     sqrt(sum((coords[6, ]  - coords[13, ])^2)),
     sqrt(sum((coords[1, ]  - coords[11, ])^2)),
     sqrt(sum((coords[22, ] - coords[26, ])^2)),
-    sqrt(sum((coords[2, ]  - coords[27, ])^2)),
+    sqrt(sum((coords[23, ]  - coords[27, ])^2)),
     dist_11_11prime
   )
   
