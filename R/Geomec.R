@@ -49,7 +49,7 @@ point_M_Vs <- function(result_matrix) {
   B <- result_matrix[2, ]
   C <- result_matrix[3, ]
   D <- result_matrix[4, ]
-  A_Line <- result_matrix[10, ]
+  A_Line <- result_matrix[8, ]
   AA_Line <- A_Line - A
   projection <- (sum((B - A) * AA_Line) / sum(AA_Line^2)) * AA_Line
   M <- A + projection
@@ -79,28 +79,65 @@ pMV <- function(result_matrix) {
 
 #ALEX - Calculate euclidean distance in mm between points function - Godinho et al., 2020 protocol
 distR <- function(input_text) {
-  text2matrix <- function(input_text) {
-    values <- strsplit(input_text, "\\s+")
-    if (length(unlist(values)) %% 3 != 0) {
-      stop("The number of values must be a multiple of 3.")
-    }
-    values <- as.numeric(unlist(values))
-    result_matrix <- matrix(values, ncol = 3, byrow = TRUE)
-    return(result_matrix)
+  # 1) Parseo de las coordenadas
+  vals <- as.numeric(strsplit(input_text, "\\s+")[[1]])
+  if (length(vals) %% 3 != 0)
+    stop("The number of values must be a multiple of 3")
+  coords <- matrix(vals, ncol = 3, byrow = TRUE)
+  
+  # 2) Cálculo de 11' (punto reflejado) sobre el plano definido por landmarks 23,24,25
+  P11 <- coords[11, ]         # landmark 11
+  B   <- coords[23, ]         # landmark 23
+  C   <- coords[24, ]         # landmark 24
+  D   <- coords[25, ]         # landmark 25 (proyección infradentale)
+  
+  # Producto vectorial para dos vectores 3D
+  cross_product <- function(u, v) {
+    c(
+      u[2]*v[3] - u[3]*v[2],
+      u[3]*v[1] - u[1]*v[3],
+      u[1]*v[2] - u[2]*v[1]
+    )
   }
-  est_distances_matrix <- text2matrix(input_text)
-  M_coordinates <- point_M_coordinates
-  est_distances_matrix <- rbind(est_distances_matrix, M_coordinates)
-  distances <- c(
-    "Corpus length" = sqrt(sum((est_distances_matrix[1, ] - est_distances_matrix[11, ])^2)),
-    "Ramus lateral length" = sqrt(sum((est_distances_matrix[6, ] - est_distances_matrix[13, ])^2)),
-    "Ramus width" = sqrt(sum((est_distances_matrix[10, ] - est_distances_matrix[21, ])^2)),
-    "Mandibular superior length" = sqrt(sum((est_distances_matrix[2, ] - est_distances_matrix[22, ])^2))
+  
+  BC     <- C - B
+  BD     <- D - B
+  n      <- cross_product(BC, BD)
+  n_unit <- n / sqrt(sum(n^2))
+  d      <- sum((P11 - B) * n_unit)
+  
+  # Punto reflejado (11')
+  P11_proj <- P11 - 2 * d * n_unit
+  
+  # Guardar en el workspace
+  coords_11_prime <<- P11_proj
+  dist_11_11prime <<- sqrt(sum((P11 - P11_proj)^2))
+  
+  # 3) Cálculo de las demás distancias
+  dist_names <- c(
+    "Mandibular lateral length",
+    "Corpus length",
+    "Dental arcade breadth",
+    "Mandibular superior length",
+    "Estimated bigonial breadth"
   )
-  Estandardization_distances <- matrix(distances, nrow = 1, ncol = 4)
-  colnames(Estandardization_distances) <- c("Corpus length", "Ramus lateral length", "Ramus width", "Mandibular superior length") 
-  assign("Estandardization_distances", Estandardization_distances, envir = .GlobalEnv)
-  return(Estandardization_distances)
+  dist_vals <- c(
+    sqrt(sum((coords[6, ]  - coords[13, ])^2)),
+    sqrt(sum((coords[1, ]  - coords[11, ])^2)),
+    sqrt(sum((coords[22, ] - coords[23, ])^2)),
+    sqrt(sum((coords[2, ]  - coords[24, ])^2)),
+    dist_11_11prime
+  )
+  
+  # 4) Construcción de la matriz de salida
+  result <- matrix(
+    c(dist_names, as.character(dist_vals)),
+    nrow    = 2,
+    byrow   = TRUE,
+    dimnames = list(c("Measurements", "Values"), NULL)
+  )
+  assign("distances_matrix", result, envir = .GlobalEnv)
+  return(result)
 }
 
 #Calculate euclidean distance in mm between points function - Standard protocol
@@ -108,11 +145,10 @@ CalcEstDistances <- function(input_matrix) {
   distances <- c(
     "Corpus length" = sqrt(sum((input_matrix[3, ] - input_matrix[5, ])^2)),
     "Ramus lateral length" = sqrt(sum((input_matrix[6, ] - input_matrix[7, ])^2)),
-    "Ramus width" = sqrt(sum((input_matrix[8, ] - input_matrix[9, ])^2)),
-    "Mandibular superior length" = sqrt(sum((input_matrix[2, ] - input_matrix[11, ])^2))
+    "Mandibular superior length" = sqrt(sum((input_matrix[2, ] - input_matrix[9, ])^2))
   )
-  Estandardization_distances <- matrix(distances, nrow = 1, ncol = 4)
-  colnames(Estandardization_distances) <- c("Corpus length", "Ramus lateral length", "Ramus width", "Mandibular superior length") 
+  Estandardization_distances <- matrix(distances, nrow = 1, ncol = 3)
+  colnames(Estandardization_distances) <- c("Corpus length", "Ramus lateral length", "Mandibular superior length") 
   assign("Estandardization_distances", Estandardization_distances, envir = .GlobalEnv)
   return(Estandardization_distances)
 }
