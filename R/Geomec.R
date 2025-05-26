@@ -1,80 +1,222 @@
 #Transform text input into a matrix with all the points labeled
 getmatrix <- function(input_text) {
-  values <- strsplit(input_text, "\\s+")
-  if (length(unlist(values)) %% 3 != 0) {
+  values <- strsplit(input_text, "\\s+")[[1]]
+  if (length(values) %% 3 != 0) {
     stop("The number of values must be a multiple of 3.")
   }
-  values <- as.numeric(unlist(values))
+  values <- as.numeric(values)
+  num_landmarks <- length(values) / 3
   result_matrix <- matrix(values, ncol = 3, byrow = TRUE)
-  row.names(result_matrix) <- c("A", "B", "C", "D", "Gonion", "CP3", "Cond_Midpoint", "Ramus_Post", "Ramus_Root")
+  row.names(result_matrix) <- paste0("LM", seq_len(num_landmarks))
   return(result_matrix)
 }
 
-#ALEX - Transform text input into a matrix function - Godinho et al., 2020 protocol
-t2m <- function(input_text) {
-  values <- strsplit(input_text, "\\s+")
-  if (length(unlist(values)) %% 3 != 0) {
-    stop("The number of values must be a multiple of 3")
+
+
+#Mirror Landmark 1 function
+mirror_LM1 <- function(result_matrix) {
+  if (nrow(result_matrix) < 4) {
+    stop("At least 4 landmarks are required to compute the mirrored LM1.")
   }
-  values <- as.numeric(unlist(values))
-  result_matrix <- matrix(values, ncol = 3, byrow = TRUE)
-  row.names(result_matrix) <- c("A", "B", "C", "D")
-  return(result_matrix)
-}
-
-#Mirror point A function
-mirror_A <- function(result_matrix) {
-  A <- result_matrix[1, ]
-  B <- result_matrix[2, ]
-  C <- result_matrix[3, ]
-  D <- result_matrix[4, ]
+  
+  LM1 <- result_matrix[1, ]
+  LM2 <- result_matrix[2, ]
+  LM3 <- result_matrix[3, ]
+  LM4 <- result_matrix[4, ]
+  
   cross_product <- function(u, v) {
-    return(c(u[2]*v[3] - u[3]*v[2], u[3]*v[1] - u[1]*v[3], u[1]*v[2] - u[2]*v[1]))
+    c(u[2]*v[3] - u[3]*v[2],
+      u[3]*v[1] - u[1]*v[3],
+      u[1]*v[2] - u[2]*v[1])
   }
+  
+  Vec_2_3 <- LM3 - LM2
+  Vec_2_4 <- LM4 - LM2
+  n <- cross_product(Vec_2_3, Vec_2_4)
+  n_norm <- n / sqrt(sum(n^2))
+  d <- sum((LM1 - LM2) * n_norm)
+  LM1_Line <- LM1 - 2 * d * n_norm
+  
+  # Inserta LM1_Line entre LM4 y LM5
+  part1 <- result_matrix[1:4, , drop = FALSE]
+  part2 <- result_matrix[5:nrow(result_matrix), , drop = FALSE]
+  result_matrix <- rbind(part1, LM1_Line, part2)
+  
+  assign("LM1_Line", LM1_Line, envir = .GlobalEnv)
+  assign("result_matrix", result_matrix, envir = .GlobalEnv)
+  return(LM1_Line)
+}
+
+
+
+#Create point 0 and perpendicular vectors function
+orthoplanes <- function(result_matrix) {
+LM1 <- result_matrix[1, ]
+LM2 <- result_matrix[2, ]
+LM3 <- result_matrix[3, ]
+LM4 <- result_matrix[4, ]
+LM1_Line <- result_matrix[5, ]
+CS1B <- result_matrix[6, ] 
+LM6 <- result_matrix[7, ]
+CS2B <- result_matrix[8, ]
+LM8 <- result_matrix[9, ]
+LM9 <- result_matrix[10, ]
+LM10 <- result_matrix[11, ]
+LM11 <- result_matrix[12, ]
+  
+Vec_1_1Line <- LM1_Line - LM1
+projection <- (sum((LM2 - LM1) * Vec_1_1Line) / sum(Vec_1_1Line^2)) * Vec_1_1Line
+LM0 <- LM1 + projection
+Vec_0_2 <- LM2 - LM0
+  
+Vec_CS1 <- LM6 - CS1B
+Vec_CS2 <- LM8 - CS2B
+
+#Calculation of Vec_Penp  
+v1 <- LM2 - LM1
+v2 <- LM1_Line - LM1
+
+Vec_Penp_raw <- c(
+  v1[2]*v2[3] - v1[3]*v2[2],
+  v1[3]*v2[1] - v1[1]*v2[3],
+  v1[1]*v2[2] - v1[2]*v2[1]
+)
+
+Vec_Penp <- Vec_Penp_raw / sqrt(sum(Vec_Penp_raw^2))  # Normalized
+
+#Results
+assign("Vec_0_2", Vec_0_2, envir = .GlobalEnv)
+assign("Vec_CS1", Vec_CS1, envir = .GlobalEnv)
+assign("Vec_CS2", Vec_CS2, envir = .GlobalEnv)
+assign("Vec_Penp", Vec_Penp, envir = .GlobalEnv)
+
+result_matrix <- rbind(LM1, LM2, LM3, LM4, LM1_Line, CS1B, Vec_CS1, CS2B, Vec_CS2, Vec_Penp, Vec_0_2, Vec_1_1Line, LM0, LM6, LM8, LM9, LM10, LM11)
+assign("result_matrix", result_matrix, envir = .GlobalEnv)
+return(result_matrix)
+}
+
+
+
+
+#Calculate euclidean distance in mm between points - Standard protocol
+mandibular_metrics <- function(result_matrix) {
+  # Extraer coordenadas
+  coords <- result_matrix
+  LM1 <- coords[1, ]
+  LM2 <- coords[2, ]
+  LM3 <- coords[3, ]          # Gnathion
+  LM4 <- coords[4, ]
+  LM1_Line <- coords[5, ]
+  LM9 <- coords[16, ]         # Bigonial angle
+  LM10 <- coords[17, ]        # C-P3
+  LM11 <- coords[18, ]        # Condyle midpoint
+  LM0 <- coords[13, ]
+  
+  # Función auxiliar para calcular distancia euclidiana
+  euclidean_distance <- function(p1, p2) {
+    sqrt(sum((p1 - p2)^2))
+  }
+  
+  # Producto vectorial
+  cross_product <- function(u, v) {
+    c(
+      u[2]*v[3] - u[3]*v[2],
+      u[3]*v[1] - u[1]*v[3],
+      u[1]*v[2] - u[2]*v[1]
+    )
+  }
+  
+  # Producto escalar
+  dot_product <- function(u, v) {
+    sum(u * v)
+  }
+  
+  # Normalización de vector
+  normalize_vector <- function(v) {
+    v / sqrt(sum(v^2))
+  }
+  
+  # 1. Mandibular lateral length: LM10 - LM11
+  mandibular_lateral_length <- euclidean_distance(LM10, LM11)
+  
+  # 2. Corpus length: LM9 - LM3
+  corpus_length <- euclidean_distance(LM9, LM3)
+  
+  # 3. Estimated dental arch breadth: LM1 - LM1_Line
+  estimated_dental_arch_breadth <- euclidean_distance(LM1, LM1_Line)
+  
+  # 4. Estimated dental arch length: LM2 - LM0
+  estimated_dental_arch_length <- euclidean_distance(LM2, LM0)
+  
+  # 5. Estimated bigonial breadth (reflexión de LM9 respecto al plano P)
+  B <- LM2
+  C <- LM3
+  D <- LM4
   BC <- C - B
   BD <- D - B
   n <- cross_product(BC, BD)
-  n_norm <- n / sqrt(sum(n^2))
-  d <- sum((A - B) * n_norm)
-  A_Line <- A - 2 * d * n_norm
-  result_matrix <- rbind(result_matrix, A_Line)
-  assign("A_Line", A_Line, envir = .GlobalEnv)
-  assign("result_matrix", result_matrix, envir = .GlobalEnv)
-  return(A_Line)
+  n_unit <- normalize_vector(n)
+  d <- dot_product((LM9 - B), n_unit)
+  LM9_prime <- LM9 - 2 * d * n_unit
+  estimated_bigonial_breadth <- euclidean_distance(LM9, LM9_prime)
+  
+  # Construcción de la tabla de salida
+  result <- data.frame(
+    `Mandibular lateral length`       = mandibular_lateral_length,
+    `Corpus length`                   = corpus_length,
+    `Estimated dental arch breadth`  = estimated_dental_arch_breadth,
+    `Estimated dental arch length`   = estimated_dental_arch_length,
+    `Estimated bigonial breadth`     = estimated_bigonial_breadth
+  )
+  
+  assign("mandibular_metrics", result, envir = .GlobalEnv)
+  
+  return(result)
 }
 
-#Create point M function
-point_M_Vs <- function(result_matrix) {
-  A <- result_matrix[1, ]
-  B <- result_matrix[2, ]
-  C <- result_matrix[3, ]
-  D <- result_matrix[4, ]
-  A_Line <- result_matrix[8, ]
-  AA_Line <- A_Line - A
-  projection <- (sum((B - A) * AA_Line) / sum(AA_Line^2)) * AA_Line
-  M <- A + projection
-  MB <- B - M
-  result_matrix <- rbind(result_matrix, M, MB, AA_Line)
-  assign("point_M_coordinates", M, envir = .GlobalEnv)
-  assign("result_matrix", result_matrix, envir = .GlobalEnv)
-  return(list(M = M, MB = MB, AA_Line = AA_Line))
-}
+
 
 #ALEX - Create point M function - Godinho et al., 2020 protocol
 pMV <- function(result_matrix) {
-  A <- result_matrix[1, ]
-  B <- result_matrix[2, ]
-  C <- result_matrix[3, ]
-  D <- result_matrix[4, ]
-  A_Line <- result_matrix[5, ]
-  AA_Line <- A_Line - A
-  projection <- (sum((B - A) * AA_Line) / sum(AA_Line^2)) * AA_Line
-  M <- A + projection
-  MB <- B - M
-  result_matrix <- rbind(result_matrix, M, MB, AA_Line)
-  assign("point_M_coordinates", M, envir = .GlobalEnv)
+  LM1 <- result_matrix[1, ]
+  LM2 <- result_matrix[2, ]
+  LM3 <- result_matrix[3, ]
+  LM4 <- result_matrix[4, ]
+  LM1_Line <- result_matrix[5, ]
+  CS1B <- result_matrix[6, ]  
+  LM6 <- result_matrix[7, ]
+  CS2B <- result_matrix[8, ]  
+  LM8 <- result_matrix[9, ]
+  
+  Vec_1_1Line <- LM1_Line - LM1
+  projection <- (sum((LM2 - LM1) * Vec_1_1Line) / sum(Vec_1_1Line^2)) * Vec_1_1Line
+  LM0 <- LM1 + projection
+  Vec_0_2 <- LM2 - LM0
+  
+  Vec_CS1 <- LM6 - CS1B
+  Vec_CS2 <- LM8 - CS2B
+  
+  #Calculation of Vec_Penp  
+  v1 <- LM2 - LM1
+  v2 <- LM1_Line - LM1
+  
+  Vec_Penp_raw <- c(
+    v1[2]*v2[3] - v1[3]*v2[2],
+    v1[3]*v2[1] - v1[1]*v2[3],
+    v1[1]*v2[2] - v1[2]*v2[1]
+  )
+  
+  Vec_Penp <- Vec_Penp_raw / sqrt(sum(Vec_Penp_raw^2))  # Normalized
+  
+  #Results
+  assign("Vec_0_2", Vec_0_2, envir = .GlobalEnv)
+  assign("Vec_CS1", Vec_CS1, envir = .GlobalEnv)
+  assign("Vec_CS2", Vec_CS2, envir = .GlobalEnv)
+  assign("Vec_Penp", Vec_Penp, envir = .GlobalEnv)
+  
+  result_matrix <- rbind(LM1, LM2, LM3, LM4, LM1_Line, CS1B, Vec_CS1, CS2B, Vec_CS2, Vec_Penp, Vec_0_2, Vec_1_1Line, LM0, LM6, LM8)
   assign("result_matrix", result_matrix, envir = .GlobalEnv)
-  return(list(M = M, MB = MB, AA_Line = AA_Line))
+  return(result_matrix)
 }
 
 #ALEX - Calculate euclidean distance in mm between points function - Godinho et al., 2020 protocol
@@ -140,20 +282,8 @@ distR <- function(input_text) {
   return(result)
 }
 
-#Calculate euclidean distance in mm between points function - Standard protocol
-CalcEstDistances <- function(input_matrix) {
-  distances <- c(
-    "Corpus length" = sqrt(sum((input_matrix[3, ] - input_matrix[5, ])^2)),
-    "Ramus lateral length" = sqrt(sum((input_matrix[6, ] - input_matrix[7, ])^2)),
-    "Mandibular superior length" = sqrt(sum((input_matrix[2, ] - input_matrix[9, ])^2))
-  )
-  Estandardization_distances <- matrix(distances, nrow = 1, ncol = 3)
-  colnames(Estandardization_distances) <- c("Corpus length", "Ramus lateral length", "Mandibular superior length") 
-  assign("Estandardization_distances", Estandardization_distances, envir = .GlobalEnv)
-  return(Estandardization_distances)
-}
 
-#Extra - Calculate the euclidean distance in mm between two points function
+#Extra - Calculate the euclidean distance in mm between two points
 PointDistancemm <- function(point_A, point_B) {
   distance <- sqrt(sum((point_A - point_B)^2))
   cat("The distance between point A and point B is:", distance, "\n")
@@ -174,56 +304,4 @@ text2vector <- function(input_text) {
 #Extra - Calculate the cross-product of two vector function
 cross_product <- function(u_vector, v_vector) {
   return(c(u[2]*v[3] - u[3]*v[2], u[3]*v[1] - u[1]*v[3], u[1]*v[2] - u[2]*v[1]))
-}
-
-#Extra - Transform text input into a matrix
-text2matrix <- function(input_text) {
-  values <- strsplit(input_text, "\\s+")
-  if (length(unlist(values)) %% 3 != 0) {
-    stop("The number of values must be a multiple of 3")
-  }
-  values <- as.numeric(unlist(values))
-  result_matrix <- matrix(values, ncol = 3, byrow = TRUE)
-  return(result_matrix)
-}
-
-#Extra - Fill NA cells of a column preserving pre-exinting mean 
-fill_na_mean_pres <- function(df, column) {
-  # Calculate the mean ignoring NA values
-  initial_mean <- mean(df[[column]], na.rm = TRUE)
-  # Count the number of NA values
-  num_NA <- sum(is.na(df[[column]]))
-  # Calculate the SD ignoring NA cells
-  sd_value <- sd(df[[column]], na.rm = TRUE)
-  #Calculate 95% CI
-  n <- sum(!is.na(df[[column]]))  # Tamaño de la muestra sin NAs
-  error_margin <- qt(0.975, df = n - 1) * sd_value / sqrt(n)
-  conf_interval_min <- initial_mean - error_margin
-  conf_interval_max <- initial_mean + error_margin
-  # Calculate the sum that the values must have to maintain the mean
-  required_sum <- initial_mean * length(df[[column]]) - sum(df[[column]], na.rm = TRUE)
-  # Generate random values within the allowed range
-  set.seed(123) # para reproducibilidad
-  na_values <- runif(num_NA, min = conf_interval_min, max = conf_interval_max)
-  na_values <- na_values / sum(na_values) * required_sum
-  # Adjust values to be within the allowed range (existing min and max)
-  while (any(na_values < conf_interval_min) || any(na_values > conf_interval_max)) {
-    na_values[na_values < conf_interval_min] <- runif(sum(na_values < conf_interval_min), min = conf_interval_min, max = conf_interval_max)
-    na_values[na_values > conf_interval_max] <- runif(sum(na_values > conf_interval_max), min = conf_interval_min, max = conf_interval_max)
-    na_values <- na_values / sum(na_values) * required_sum
-  }
-  # Fill the NA values with the generated values
-  df[[column]][is.na(df[[column]])] <- na_values
-  # Verify the new mean
-  final_mean <- mean(df[[column]])
-  # Display the means for verification
-  print(paste("Initial mean:", initial_mean))
-  print(paste("Final mean:", final_mean))
-  if (initial_mean == final_mean) {
-    print("Means are equal!")
-  }
-  #Create the new df with NA cells filled
-  assign("NA_filled_df", df, envir = .GlobalEnv)
-  # Return the dataset with filled values
-  return(df)
 }
