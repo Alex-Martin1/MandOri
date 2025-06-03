@@ -24,6 +24,7 @@ The reason for including two functions that are so similar (this one and pMV) in
 \value{
 A new result_matrix with 18 rows, containing in the following order the three-dimensional coordinates of: LM1, LM2, LM3, LM4, LM1_Line, CS1B (formerly LM5), Vec_CS1, CS2B (formerly LM7), Vec_CS2, Vec_Penp, Vec_0_2, Vec_1_1Line, LM0, LM6, LM8, LM9, LM10, and LM11.
 Besides, the function will generate four new objects in the R enviroment: "Vec_0_2", "Vec_CS1", "Vec_CS2" and "Vec_Penp"
+}
 \references{
 Protocols.io - to be published
 }
